@@ -39,8 +39,8 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="syscall_handler.asm">
+    <MASM Include="syscall_handler.asm">
       <Filter>Source Files</Filter>
-    </None>
+    </MASM>
   </ItemGroup>
 </Project>

