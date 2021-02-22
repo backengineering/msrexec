@@ -19,35 +19,27 @@ int __cdecl main(int argc, char** argv)
 	std::printf("NtShutdownSystem -> 0x%p\n", utils::kmodule::get_export("ntoskrnl.exe", "NtShutdownSystem"));
 
 	writemsr_t _write_msr =
-		[&](std::uint32_t reg, std::uintptr_t value) -> void
+		[&](std::uint32_t reg, std::uintptr_t value) -> bool
 	{
 		// put your code here to write MSR....
 		// the code is defined in vdm::writemsr for me...
-		vdm::writemsr(reg, value);
+		return vdm::writemsr(reg, value);
 	};
 
-	const auto ex_alloc_pool =
-		reinterpret_cast<ex_alloc_pool_t>(
-			utils::kmodule::get_export(
-				"ntoskrnl.exe", "ExAllocatePool"));
-
-	const auto dbg_print =
-		reinterpret_cast<dbg_print_t>(
-			utils::kmodule::get_export(
-				"ntoskrnl.exe", "DbgPrint"));
-
 	vdm::msrexec_ctx msrexec(_write_msr);
-	std::printf("press enter to run 100 syscall tests...\n");
-	std::getchar();
-
-	for (auto idx = 0u; idx < 100; ++idx)
+	msrexec.exec([&](void* krnl_base, get_system_routine_t get_kroutine) -> void
 	{
-		msrexec.exec([&ex_alloc_pool, &dbg_print]() -> void
-			{
-				dbg_print("> allocated pool -> 0x%p\n",
-					ex_alloc_pool(NULL, 0x1000));
-			});
-	}
+		const auto dbg_print = 
+			reinterpret_cast<dbg_print_t>(
+				get_kroutine(krnl_base, "DbgPrint"));
+
+		const auto ex_alloc_pool = 
+			reinterpret_cast<ex_alloc_pool_t>(
+				get_kroutine(krnl_base, "ExAllocatePool"));
+
+		dbg_print("> allocated pool -> 0x%p\n", ex_alloc_pool(NULL, 0x1000));
+		dbg_print("> cr4 -> 0x%p\n", __readcr4());
+	});
 
 	const auto unload_result =
 		vdm::unload_drv(drv_handle, drv_key);

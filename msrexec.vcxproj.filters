@@ -17,9 +17,6 @@
     <ClInclude Include="raw_driver.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="syscall_handler.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="utils.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -30,6 +27,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ia32.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="syscall_handler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -29,34 +29,17 @@ namespace vdm
 		cpuid_eax_07 cpuid_features;
 		__cpuid((int*)&cpuid_features, 7);
 
-		// if i dont set a bit, it means its 0...
 		cr4 cr4_value{};
-
 		cr4_value.debugging_extensions = true;
 		cr4_value.page_size_extensions = true;
 		cr4_value.machine_check_enable = true;
 
-		// however the system can still *not* have PAE enabled 
-		// but i assume if its supported, windows will use it...
-		// if you find out otherwise please email: _xeroxz@back.engineer...
 		cr4_value.physical_address_extension = 
 			cpuid_info.cpuid_feature_information_edx.physical_address_extension;
 
-		// again the system can still *not* have PGE enabled 
-		// but i assume if its supported, windows will use it...
-		// if you find out otherwise please email: _xeroxz@back.engineer...
-		cr4_value.page_global_enable = 
-			cpuid_info.cpuid_feature_information_edx.page_global_bit;
-
-		// again the system can still *not* have FXSAVE/FXRSTOR enabled 
-		// but i assume if its supported, windows will use it...
-		// if you find out otherwise please email: _xeroxz@back.engineer...
 		cr4_value.os_fxsave_fxrstor_support = 
 			cpuid_info.cpuid_feature_information_edx.fxsave_fxrstor_instructions;
 
-		// windows has this bit high on my VM so I 
-		// assume windows can handle these exceptions...
-		// if you find out otherwise please email: _xeroxz@back.engineer...
 		cr4_value.os_xmm_exception_support = true;
 
 		cr4_value.fsgsbase_enable = 
@@ -64,6 +47,10 @@ namespace vdm
 
 		cr4_value.os_xsave = 
 			IsProcessorFeaturePresent(PF_XSAVE_ENABLED);
+
+		cr4_value.pcid_enable = 
+			cpuid_info.cpuid_feature_information_ecx
+			.process_context_identifiers;
 
 		m_smep_off.flags = cr4_value.flags;
 		m_smep_off.smep_enable = false;
