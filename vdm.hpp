@@ -50,12 +50,12 @@ namespace vdm
 		return driver::unload(drv_key);
 	}
 
-	inline auto writemsr(std::uint32_t reg, std::uintptr_t value) -> void
+	inline auto writemsr(std::uint32_t reg, std::uintptr_t value) -> bool
 	{
 		std::uint32_t bytes_handled;
 		write_msr_t io_data{ reg, value };
 
-		DeviceIoControl
+		return DeviceIoControl
 		(
 			vdm::drv_handle, IOCTL_WRMSR,
 			&io_data, sizeof io_data,

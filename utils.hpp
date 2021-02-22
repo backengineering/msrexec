@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include "ia32.hpp"
 
 typedef struct _RTL_PROCESS_MODULE_INFORMATION
 {
@@ -37,6 +38,24 @@ typedef struct _RTL_PROCESS_MODULES
 	ULONG NumberOfModules;
 	RTL_PROCESS_MODULE_INFORMATION Modules[1];
 } RTL_PROCESS_MODULES, * PRTL_PROCESS_MODULES;
+
+extern "C++"
+{
+	char _RTL_CONSTANT_STRING_type_check(const WCHAR* s);
+	// __typeof would be desirable here instead of sizeof.
+	template <size_t N> class _RTL_CONSTANT_STRING_remove_const_template_class;
+template <> class _RTL_CONSTANT_STRING_remove_const_template_class<sizeof(char)> { public: typedef  char T; };
+template <> class _RTL_CONSTANT_STRING_remove_const_template_class<sizeof(WCHAR)> { public: typedef WCHAR T; };
+#define _RTL_CONSTANT_STRING_remove_const_macro(s) \
+    (const_cast<_RTL_CONSTANT_STRING_remove_const_template_class<sizeof((s)[0])>::T*>(s))
+}
+
+#define RTL_CONSTANT_STRING(s) \
+{ \
+    sizeof( s ) - sizeof( (s)[0] ), \
+    sizeof( s ) / sizeof(_RTL_CONSTANT_STRING_type_check(s)), \
+    _RTL_CONSTANT_STRING_remove_const_macro(s) \
+}
 
 namespace utils
 {

