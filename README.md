@@ -92,7 +92,7 @@ push rax
 
 changing IA32_LSTAR to a ROP chain as described above will work just fine on CPU's that done support SMAP. Windows 10 will use SMAP if your CPU supports it. This means RSP is unaccessable since it is a user controlled page. 
 
-### SMAP - Supervisor Mode Access Prevention
+### SMAP - Supervisor Mode Access Prevention (Win10 19H1 and up...)
 
 SMAP or Supervisor Mode Access Prevention is a CPU protection which prevents accessing data controlled by a higher CPL. In other words, if SMAP is set in CR4, a logical
 processor executing kernel code cannot access usermode controlled pages (user supervisor).
