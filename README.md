@@ -1,10 +1,3 @@
-# Credit - Special Thanks
-
-* [@drew](https://twitter.com/drewbervisor) - pointing out AC bit in RFLAGS can be set in usermode. I originally assumed since the `STAC` instruction could not be executed in usermode that `POPFQ` would throw an exception if AC bit was high and CPL was greater then zero. Without this key information the project would have been a complete mess. Thank you!
-* [@0xnemi](https://twitter.com/0xnemi) / [@everdox](https://twitter.com/nickeverdox) - [mov ss/pop ss exploit](https://www.youtube.com/watch?v=iU_No7gdcwc) 0xnemi's use of syscall and the fact that RSP is not changed + use of ROP made me think about how there are alot of vulnerable drivers that expose arbitrary wrmsr which could be used to change LSTAR and effectivlly replicate his solution...
-* [@Ch3rn0byl](https://twitter.com/notCh3rn0byl) - donation of a few vulnerable drivers which exposed arbitrary WRMSR/helped test with KVA shadowing enabled/disabled. 
-* [@namazso](https://twitter.com/namazso) - originally hinting at this project many months ago. its finally done :)
-
 <img src="https://imgur.com/nNnOCPK.png"/>
 
 # MsrExec - Elevate Arbitrary WRMSR To Kernel Execution
@@ -74,6 +67,13 @@ popfq                           ; restore EFLAGS...
 pop r10                         ; restore r10...
 ret
 ```
+
+# Credit - Special Thanks
+
+* [@drew](https://twitter.com/drewbervisor) - pointing out AC bit in RFLAGS can be set in usermode. I originally assumed since the `STAC` instruction could not be executed in usermode that `POPFQ` would throw an exception if AC bit was high and CPL was greater then zero. Without this key information the project would have been a complete mess. Thank you!
+* [@0xnemi](https://twitter.com/0xnemi) / [@everdox](https://twitter.com/nickeverdox) - [mov ss/pop ss exploit](https://www.youtube.com/watch?v=iU_No7gdcwc) 0xnemi's use of syscall and the fact that RSP is not changed + use of ROP made me think about how there are alot of vulnerable drivers that expose arbitrary wrmsr which could be used to change LSTAR and effectivlly replicate his solution...
+* [@Ch3rn0byl](https://twitter.com/notCh3rn0byl) - donation of a few vulnerable drivers which exposed arbitrary WRMSR/helped test with KVA shadowing enabled/disabled. 
+* [@namazso](https://twitter.com/namazso) - originally hinting at this project many months ago. its finally done :)
 
 # Lisence
 
