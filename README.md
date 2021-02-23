@@ -5,6 +5,14 @@
 msrexec is a small project that can be used to elevate arbitrary MSR writes to kernel execution on 64 bit Windows-10 systems. This project is part of the VDM (vulnerable driver manipulation) namespace
 and can be integrated into any prior VDM projects. Although this project falls under the VDM namespace, Voyager and bluepill can be used to provide arbitrary wrmsr writes.
 
+#### Features
+
+* integration with VDM
+* integration with Voyager and bluepill
+* Use any vulnerable driver which exposes arbitrary WRMSR to obtain kernel exeuction
+* Works under KVA shadowing (you will still need to run as admin however to load the driver, LSTAR points to KiSystemCall64Shadow though...)
+* WARNING: does not work under most anti virus hypervisors or HVCI systems...
+
 # Syscall - Fast System Call
 
 SYSCALL invokes an OS system-call handler at privilege level 0. It does so by ***loading RIP from the IA32_LSTAR MSR*** (after saving the address of the instruction following SYSCALL into RCX). (The WRMSR instruction ensures that the IA32_LSTAR MSR always contain a canonical address.)
