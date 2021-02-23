@@ -1,11 +1,11 @@
 <img src="https://imgur.com/nNnOCPK.png"/>
 
-# msrexec - elevate arbitrary wrmsr to kernel execution
+# MsrExec - Elevate Arbitrary WRMSR To Kernel Execution
 
 msrexec is a small project that can be used to elevate arbitrary MSR writes to kernel execution on 64 bit Windows-10 systems. This project is part of the VDM (vulnerable driver manipulation) namespace
 and can be integrated into any prior VDM projects. Although this project falls under the VDM namespace, Voyager and bluepill can be used to provide arbitrary wrmsr writes.
 
-# syscall
+# Syscall - Fast System Call
 
 SYSCALL invokes an OS system-call handler at privilege level 0. It does so by ***loading RIP from the IA32_LSTAR MSR*** (after saving the address of the instruction following SYSCALL into RCX). (The WRMSR instruction ensures that the IA32_LSTAR MSR always contain a canonical address.)
 
@@ -15,7 +15,7 @@ SYSCALL loads the CS and SS selectors with values derived from bits 47:32 of the
 
 ***The SYSCALL instruction does not save the stack pointer (RSP).*** If the OS system-call handler will change the stack pointer, it is the responsibility of software to save the previous value of the stack pointer. This might be done prior to executing SYSCALL, with software restoring the stack pointer with the instruction following SYSCALL (which will be executed after SYSRET). Alternatively, the OS system-call handler may save the stack pointer and restore it before executing SYSRET.
 
-# ROP - Return-oriented programming
+# ROP - Return-Oriented Programming
 
 ROP or return-oriented programming, is a technique where an attacker gains control of the call stack to hijack program control flow and then executes carefully chosen machine instruction sequences that are already present in the machine's memory, called "gadgets". Note: ***"The SYSCALL instruction does not save the stack pointer (RSP)"***. This allows for an attacker to setup the stack with addresses of ROP gadgets are specific values. In this situation SMEP and SMAP are two cpu protections which prevent an attacker from setting IA32_LSTAR to a user controlled page.
 
@@ -23,19 +23,19 @@ ROP or return-oriented programming, is a technique where an attacker gains contr
 
 SMEP or Supervisor Mode Execution Protection, prevents a logical processor with a lower CPL from executing code mapped into virtual memory with super supervisor bit set. This is relevant to this project as one could not simply set LSTAR to a user controlled page. However, with ROP one could disable SMEP by executing the following gadgets:
 
-```
+```asm
 pop rcx
 ret
 ```
 
-```
+```asm
 mov cr4, rcx
 ret
 ```
 
 However, when the syscall instruction is executed, the address of the next instruction (the one after the syscall instruction) is placed into RCX. In order to preserve RIP, it should be placed onto the stack before any addresses of gadgets are placed onto the stack.
 
-```
+```asm
 lea rax, finish
 push rax
 ```
