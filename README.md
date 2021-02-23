@@ -9,9 +9,9 @@ and can be integrated into any prior VDM projects. Although this project falls u
 
 * integration with VDM
 * integration with Voyager and bluepill
-* Use any vulnerable driver which exposes arbitrary WRMSR to obtain kernel exeuction
-* Works under KVA shadowing (you will still need to run as admin however to load the driver, LSTAR points to KiSystemCall64Shadow though...)
 * WARNING: does not work under most anti virus hypervisors or HVCI systems...
+* Use any vulnerable driver which exposes arbitrary WRMSR to obtain kernel exeuction
+* Works under KVA shadowing (you will still need to run as admin however to load the driver, LSTAR points to KiSystemCall64Shadow though and that is taken into consideration...)
 
 # Syscall - Fast System Call
 
