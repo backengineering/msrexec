@@ -1,3 +1,9 @@
+# Credit - Special Thanks
+
+* [@drew](https://twitter.com/drewbervisor) - pointing out AC bit in RFLAGS can be set in usermode. I originally assumed since the `STAC` instruction could not be executed in usermode that `POPFQ` would throw an exception if AC bit was high and CPL was greater then zero. Without this key information the project would have been a complete mess. Thank you!
+* [@0xnemi](https://twitter.com/0xnemi) / [@everdox](https://twitter.com/nickeverdox) - [mov ss/pop ss exploit](https://www.youtube.com/watch?v=iU_No7gdcwc) 0xnemi's use of syscall and the fact that RSP is not changed + use of ROP made me think about how there are alot of vulnerable drivers that expose arbitrary wrmsr which could be used to change LSTAR...
+* 
+
 <img src="https://imgur.com/nNnOCPK.png"/>
 
 # MsrExec - Elevate Arbitrary WRMSR To Kernel Execution
@@ -47,7 +53,7 @@ changing IA32_LSTAR to a ROP chain as described above will work just fine on CPU
 SMAP or Supervisor Mode Access Prevention is a CPU protection which prevents accessing data controlled by a higher CPL. In other words, if SMAP is set in CR4, a logical
 processor executing kernel code cannot access usermode controlled pages (user supervisor).
 
-This is an issue with ROP as RSP after a syscall contains a usermode address. Interfacing with this usermode stack in any way will cause a fault. However, you can essentially disable SMAP from usermode. There is a bit in the RFLAGS register which can be set to nullify SMAP. The instruction to set this bit is called `STAC` (Set AC Flag in EFLAGS Register). However this instruction is privilaged and will throw a #UD. However as @drew pointed out, you can `POPFQ` an RFLAGS value with that bit set and the CPU will not throw any exceptions. I assumed that since `STAC` cannot be used in usermode, that `POPFQ` would also throw an exception, however this is not the case... Again thank you @drew, without this key information the project would have been a complete mess as there are no useable `mov cr4, [non rax registers] ; ret` gadgets which exist across windows versions.
+This is an issue with ROP as RSP after a syscall contains a usermode address. Interfacing with this usermode stack in any way will cause a fault. However, you can essentially disable SMAP from usermode. There is a bit in the RFLAGS register which can be set to nullify SMAP. The instruction to set this bit is called `STAC` (Set AC Flag in EFLAGS Register). However this instruction is privilaged and will throw a #UD. However as [@drew](https://twitter.com/drewbervisor) pointed out, you can `POPFQ` an RFLAGS value with that bit set and the CPU will not throw any exceptions. I assumed that since `STAC` cannot be used in usermode, that `POPFQ` would also throw an exception, however this is not the case... Again thank you [@drew](https://twitter.com/drewbervisor), without this key information the project would have been a complete mess as there are no useable `mov cr4, [non rax registers] ; ret` gadgets which exist across windows versions.
 
 ```nasm
 pushfq                          ; thank you drew :)
