@@ -13,6 +13,25 @@ and can be integrated into any prior VDM projects. Although this project falls u
 * Use any vulnerable driver which exposes arbitrary WRMSR to obtain kernel exeuction
 * Works under KVA shadowing (you will still need to run as admin however to load the driver, LSTAR points to KiSystemCall64Shadow though and that is taken into consideration...)
 
+# Example - Usage/Demo
+
+In order to create a `vdm::msrexec_ctx` you must first create a lambda which will be passed to the constructor. The lambda must be a wrapper function which will
+in turn, be used internally by the class to write to MSR's. In my example im simply forwarding the call to a predefined routine in vdm.hpp.
+
+```cpp
+writemsr_t _write_msr =
+	[&](std::uint32_t reg, std::uintptr_t value) -> bool
+{
+	// put your code here to write MSR....
+	// the code is defined in vdm::writemsr for me...
+	return vdm::writemsr(reg, value);
+};
+```
+
+Once you have a lambda defined like this you can go ahead and create a `vdm::msrexec_ctx`. The lambda you pass to `vdm::msrexec_ctx::exec` will be executed in ring-0. Please note that you should be very aware of what you are calling in this lambda as to not make any printfs, malloc's, std::vector::push_back, or anything that might syscall. Also note that the lambda you pass must be of type `std::function<void(void*, get_system_routine_t)>`.
+
+
+
 # Syscall - Fast System Call
 
 SYSCALL invokes an OS system-call handler at privilege level 0. It does so by ***loading RIP from the IA32_LSTAR MSR*** (after saving the address of the instruction following SYSCALL into RCX). (The WRMSR instruction ensures that the IA32_LSTAR MSR always contain a canonical address.)
