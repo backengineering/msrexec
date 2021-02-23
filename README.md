@@ -23,12 +23,12 @@ ROP or return-oriented programming, is a technique where an attacker gains contr
 
 SMEP or Supervisor Mode Execution Protection, prevents a logical processor with a lower CPL from executing code mapped into virtual memory with super supervisor bit set. This is relevant to this project as one could not simply set LSTAR to a user controlled page. However, with ROP one could disable SMEP by executing the following gadgets:
 
-```asm
+```nasm
 pop rcx
 ret
 ```
 
-```asm
+```nasm
 mov cr4, rcx
 ret
 ```
