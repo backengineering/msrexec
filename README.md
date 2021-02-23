@@ -118,6 +118,7 @@ ret
 * [@0xnemi](https://twitter.com/0xnemi) / [@everdox](https://twitter.com/nickeverdox) - [mov ss/pop ss exploit](https://www.youtube.com/watch?v=iU_No7gdcwc) 0xnemi's use of syscall and the fact that RSP is not changed + use of ROP made me think about how there are alot of vulnerable drivers that expose arbitrary wrmsr which could be used to change LSTAR and effectivlly replicate his solution...
 * [@Ch3rn0byl](https://twitter.com/notCh3rn0byl) - donation of a few vulnerable drivers which exposed arbitrary WRMSR/helped test with KVA shadowing enabled/disabled. 
 * [@namazso](https://twitter.com/namazso) - originally hinting at this project many months ago. its finally done :)
+* [@btbd](https://github.com/btbd) - pointing out that LSTAR points to KiSystemCall64Shadow and not KiSystemCall64 when KVA shadowing is enabled, reguardless of AddressPolicy...
 
 # Lisence
 
