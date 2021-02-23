@@ -27,19 +27,22 @@ int __cdecl main(int argc, char** argv)
 	};
 
 	vdm::msrexec_ctx msrexec(_write_msr);
-	msrexec.exec([&](void* krnl_base, get_system_routine_t get_kroutine) -> void
+	for(auto idx = 0u; idx < 100; ++idx)
 	{
-		const auto dbg_print = 
-			reinterpret_cast<dbg_print_t>(
-				get_kroutine(krnl_base, "DbgPrint"));
+		msrexec.exec([&](void* krnl_base, get_system_routine_t get_kroutine) -> void
+		{
+			const auto dbg_print = 
+				reinterpret_cast<dbg_print_t>(
+					get_kroutine(krnl_base, "DbgPrint"));
 
-		const auto ex_alloc_pool = 
-			reinterpret_cast<ex_alloc_pool_t>(
-				get_kroutine(krnl_base, "ExAllocatePool"));
+			const auto ex_alloc_pool = 
+				reinterpret_cast<ex_alloc_pool_t>(
+					get_kroutine(krnl_base, "ExAllocatePool"));
 
-		dbg_print("> allocated pool -> 0x%p\n", ex_alloc_pool(NULL, 0x1000));
-		dbg_print("> cr4 -> 0x%p\n", __readcr4());
-	});
+			dbg_print("> allocated pool -> 0x%p\n", ex_alloc_pool(NULL, 0x1000));
+			dbg_print("> cr4 -> 0x%p\n", __readcr4());
+		});
+	}
 
 	const auto unload_result =
 		vdm::unload_drv(drv_handle, drv_key);

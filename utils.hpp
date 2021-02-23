@@ -39,23 +39,23 @@ typedef struct _RTL_PROCESS_MODULES
 	RTL_PROCESS_MODULE_INFORMATION Modules[1];
 } RTL_PROCESS_MODULES, * PRTL_PROCESS_MODULES;
 
-extern "C++"
+#define SystemKernelVaShadowInformation     (SYSTEM_INFORMATION_CLASS) 196
+typedef struct _SYSTEM_KERNEL_VA_SHADOW_INFORMATION
 {
-	char _RTL_CONSTANT_STRING_type_check(const WCHAR* s);
-	// __typeof would be desirable here instead of sizeof.
-	template <size_t N> class _RTL_CONSTANT_STRING_remove_const_template_class;
-template <> class _RTL_CONSTANT_STRING_remove_const_template_class<sizeof(char)> { public: typedef  char T; };
-template <> class _RTL_CONSTANT_STRING_remove_const_template_class<sizeof(WCHAR)> { public: typedef WCHAR T; };
-#define _RTL_CONSTANT_STRING_remove_const_macro(s) \
-    (const_cast<_RTL_CONSTANT_STRING_remove_const_template_class<sizeof((s)[0])>::T*>(s))
-}
-
-#define RTL_CONSTANT_STRING(s) \
-{ \
-    sizeof( s ) - sizeof( (s)[0] ), \
-    sizeof( s ) / sizeof(_RTL_CONSTANT_STRING_type_check(s)), \
-    _RTL_CONSTANT_STRING_remove_const_macro(s) \
-}
+	struct
+	{
+		ULONG KvaShadowEnabled : 1;
+		ULONG KvaShadowUserGlobal : 1;
+		ULONG KvaShadowPcid : 1;
+		ULONG KvaShadowInvpcid : 1;
+		ULONG KvaShadowRequired : 1;
+		ULONG KvaShadowRequiredAvailable : 1;
+		ULONG InvalidPteBit : 6;
+		ULONG L1DataCacheFlushSupported : 1;
+		ULONG L1TerminalFaultMitigationPresent : 1;
+		ULONG Reserved : 18;
+	} KvaShadowFlags;
+} SYSTEM_KERNEL_VA_SHADOW_INFORMATION, * PSYSTEM_KERNEL_VA_SHADOW_INFORMATION;
 
 namespace utils
 {
@@ -310,7 +310,8 @@ namespace utils
 					reinterpret_cast<char*>(
 						section_header[idx].Name);
 
-				if (!strcmp(_section_name, section_name))
+				// sometimes section names are not null terminated...
+				if (!strncmp(_section_name, section_name, strlen(section_name) - 1))
 				{
 					const auto section_base = 
 						reinterpret_cast<std::uint8_t*>(

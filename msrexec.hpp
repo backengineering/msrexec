@@ -13,6 +13,10 @@
 #define KI_SYSCALL_MASK "xxxxxxxx????xxxxx????xxxxxx????xxx?xxxx"
 static_assert(sizeof KI_SYSCALL_SIG == sizeof KI_SYSCALL_MASK, "signature/mask invalid size...");
 
+#define KI_SYSCALL_SHADOW_SIG "\x0F\x01\xF8\x65\x48\x89\x24\x25\x00\x00\x00\x00\x65\x48\x8B\x24\x25\x00\x00\x00\x00\x65\x0F\xBA\x24\x25\x00\x00\x00\x00\x00\x72\x03\x0F\x22\xDC"
+#define KI_SYSCALL_SHADOW_MASK "xxxxxxxx????xxxxx????xxxxx?????xxxxx"
+static_assert(sizeof KI_SYSCALL_SHADOW_SIG == sizeof KI_SYSCALL_SHADOW_MASK);
+
 using get_system_routine_t = void* (*)(void*, const char*);
 using callback_t = std::function<void(void*, get_system_routine_t)>;
 using thread_info_t = std::pair<std::uint32_t, std::uint32_t>;
