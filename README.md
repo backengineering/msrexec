@@ -35,7 +35,7 @@ ret
 
 However, when the syscall instruction is executed, the address of the next instruction (the one after the syscall instruction) is placed into RCX. In order to preserve RIP, it should be placed onto the stack before any addresses of gadgets are placed onto the stack.
 
-```asm
+```nasm
 lea rax, finish
 push rax
 ```
@@ -43,6 +43,30 @@ push rax
 changing IA32_LSTAR to a ROP chain as described above will work just fine on CPU's that done support SMAP. Windows 10 will use SMAP if your CPU supports it. This means RSP is unaccessable since it is a user controlled page. 
 
 ### SMAP - Supervisor Mode Access Prevention
+
+SMAP or Supervisor Mode Access Prevention is a CPU protection which prevents accessing data controlled by a higher CPL. In other words, if SMAP is set in CR4, a logical
+processor executing kernel code cannot access usermode controlled pages (user supervisor).
+
+This is an issue with ROP as RSP after a syscall contains a usermode address. Interfacing with this usermode stack in any way will cause a fault. However, you can essentially disable SMAP from usermode. There is a bit in the RFLAGS register which can be set to nullify SMAP. The instruction to set this bit is called `STAC` (Set AC Flag in EFLAGS Register). However this instruction is privilaged and will throw a #UD. However as @drew pointed out, you can `POPFQ` an RFLAGS value with that bit set and the CPU will not throw any exceptions. I assumed that since `STAC` cannot be used in usermode, that `POPFQ` would also throw an exception, however this is not the case... Again thank you @drew, without this key information the project would have been a complete mess as there are no useable `mov cr4, [non rax registers] ; ret` gadgets which exist across windows versions.
+
+```nasm
+pushfq														; thank you drew :)
+pop rax														; this will set the AC flag in RFLAGS which "disables SMAP"...
+or rax, 040000h												;
+push rax													;
+popfq														;
+```
+
+RFLAGS is restored after the syscall instruction. The original RFLAGS value is pushed onto the stack prior to all of the gadgets and other values.
+
+```nasm
+syscall														; LSTAR points at a pop rcx gadget... 
+															; it will put m_smep_off into rcx...
+finish:
+popfq														; restore EFLAGS...
+pop r10														; restore r10...
+ret
+```
 
 # Lisence
 
