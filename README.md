@@ -47,6 +47,14 @@ msrexec.exec([&](void* krnl_base, get_system_routine_t get_kroutine) -> void
 });
 ```
 
+Result: 
+
+```
+> allocated pool -> 0xFFFFAA8B13AD1000
+> cr4 -> 0x0000000000020678
+> hello world!
+```
+
 # Syscall - Fast System Call
 
 SYSCALL invokes an OS system-call handler at privilege level 0. It does so by ***loading RIP from the IA32_LSTAR MSR*** (after saving the address of the instruction following SYSCALL into RCX). (The WRMSR instruction ensures that the IA32_LSTAR MSR always contain a canonical address.)
