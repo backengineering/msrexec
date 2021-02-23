@@ -128,7 +128,7 @@ ret
 * [@namazso](https://twitter.com/namazso) - originally hinting at this project many months ago. its finally done :)
 * [@btbd](https://github.com/btbd) - pointing out that LSTAR points to KiSystemCall64Shadow and not KiSystemCall64 when KVA shadowing is enabled, reguardless of AddressPolicy...
 
-# Lisence
+# License
 
 TL;DR: if you use this project, rehost it, put it on github, include `_xeroxz` in your release.
 
