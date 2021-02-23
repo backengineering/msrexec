@@ -68,6 +68,8 @@ pop r10                         ; restore r10...
 ret
 ```
 
+<img src="https://imgur.com/OVC3LGH.png"/>
+
 # Credit - Special Thanks
 
 * [@drew](https://twitter.com/drewbervisor) - pointing out AC bit in RFLAGS can be set in usermode. I originally assumed since the `STAC` instruction could not be executed in usermode that `POPFQ` would throw an exception if AC bit was high and CPL was greater then zero. Without this key information the project would have been a complete mess. Thank you!
