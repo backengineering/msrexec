@@ -19,8 +19,7 @@ In order to create a `vdm::msrexec_ctx` you must first create a lambda which wil
 in turn, be used internally by the class to write to MSR's. In my example im simply forwarding the call to a predefined routine in vdm.hpp.
 
 ```cpp
-writemsr_t _write_msr =
-	[&](std::uint32_t reg, std::uintptr_t value) -> bool
+writemsr_t _write_msr = [&](std::uint32_t reg, std::uintptr_t value) -> bool
 {
 	// put your code here to write MSR....
 	// the code is defined in vdm::writemsr for me...
@@ -30,7 +29,23 @@ writemsr_t _write_msr =
 
 Once you have a lambda defined like this you can go ahead and create a `vdm::msrexec_ctx`. The lambda you pass to `vdm::msrexec_ctx::exec` will be executed in ring-0. Please note that you should be very aware of what you are calling in this lambda as to not make any printfs, malloc's, std::vector::push_back, or anything that might syscall. Also note that the lambda you pass must be of type `std::function<void(void*, get_system_routine_t)>`.
 
+```cpp
+vdm::msrexec_ctx msrexec(_write_msr);
+msrexec.exec([&](void* krnl_base, get_system_routine_t get_kroutine) -> void
+{
+	const auto dbg_print =
+		reinterpret_cast<dbg_print_t>(
+			get_kroutine(krnl_base, "DbgPrint"));
 
+	const auto ex_alloc_pool =
+		reinterpret_cast<ex_alloc_pool_t>(
+			get_kroutine(krnl_base, "ExAllocatePool"));
+
+	dbg_print("> allocated pool -> 0x%p\n", ex_alloc_pool(NULL, 0x1000));
+	dbg_print("> cr4 -> 0x%p\n", __readcr4());
+	dbg_print("> hello world!\n");
+});
+```
 
 # Syscall - Fast System Call
 
