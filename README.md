@@ -67,7 +67,7 @@ SYSCALL loads the CS and SS selectors with values derived from bits 47:32 of the
 
 # ROP - Return-Oriented Programming
 
-ROP or return-oriented programming, is a technique where an attacker gains control of the call stack to hijack program control flow and then executes carefully chosen machine instruction sequences that are already present in the machine's memory, called "gadgets". Note: ***"The SYSCALL instruction does not save the stack pointer (RSP)"***. This allows for an attacker to set up the stack with addresses of ROP gadgets. In this situation SMEP is a cpu protection which prevents an attacker from setting IA32_LSTAR to a user controlled page. SMAP in this situation prevents an attacker from setting IA32_LSTAR to a rop gadget that interfaces with RSP. (***"The SYSCALL instruction does not save the stack pointer (RSP)"***).
+ROP or return-oriented programming, is a technique where an attacker gains control of the call stack to hijack program control flow and then executes carefully chosen machine instruction sequences that are already present in the machine's memory, called "gadgets". Note: ***"The SYSCALL instruction does not save the stack pointer (RSP)"***. This allows for an attacker to set up the stack with addresses of ROP gadgets. 
 
 ### SMEP - Supervisor Mode Execution Protection
 
