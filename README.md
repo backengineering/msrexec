@@ -122,7 +122,7 @@ ret
 
 ### SFMASK - If a bit in this is set, the corresponding bit in rFLAGS is cleared.
 
-On Win10 this MSR is set to `0x4700` or `0100 0111 0000 0000`, as you can see bit 18 is not set, which means the AC flag is not cleared when syscall is execute. This means you can disable SMAP from usermode... credits to [@drew](https://twitter.com/drewbervisor) for pointing this out. I think Microsoft is unaware that you can set AC from usermode.
+On Win10 this MSR is set to `0x4700` or `0100 0111 0000 0000`, as you can see bit 18 is not set, which means the AC flag is not cleared when syscall is execute. This means you can disable SMAP from usermode... credits to [@drew](https://twitter.com/drewbervisor) for pointing this out. I think Microsoft is unaware that you can set AC from usermode. (I was also...)
 
 # Credit - Special Thanks
 
