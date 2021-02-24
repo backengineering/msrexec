@@ -120,6 +120,10 @@ ret
 
 <img src="https://imgur.com/OVC3LGH.png"/>
 
+### SFMASK - If a bit in this is set, the corresponding bit in rFLAGS is cleared.
+
+On Win10 this MSR is set to `0x4700` or `0100 0111 0000 0000`, as you can see bit 18 is not set, which means the AC flag is not cleared when syscall is execute. This means you can disable SMAP from usermode... credits to [@drew](https://twitter.com/drewbervisor) for pointing this out. I think Microsoft is unaware that you can set AC from usermode.
+
 # Credit - Special Thanks
 
 * [@drew](https://twitter.com/drewbervisor) - pointing out AC bit in RFLAGS can be set in usermode. I originally assumed since the `STAC` instruction could not be executed in usermode that `POPFQ` would throw an exception if AC bit was high and CPL was greater then zero. Without this key information the project would have been a complete mess. Thank you!
