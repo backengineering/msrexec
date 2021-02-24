@@ -32,11 +32,17 @@ namespace vdm
 		cr4_value.debugging_extensions = true;
 		cr4_value.page_size_extensions = true;
 		cr4_value.machine_check_enable = true;
-		cr4_value.os_xmm_exception_support = true;
-		cr4_value.fsgsbase_enable = true;
+
+		cr4_value.physical_address_extension =
+			cpuid_info.cpuid_feature_information_edx.physical_address_extension;
 
 		cr4_value.os_fxsave_fxrstor_support =
 			cpuid_info.cpuid_feature_information_edx.fxsave_fxrstor_instructions;
+
+		cr4_value.os_xmm_exception_support = true;
+
+		cr4_value.fsgsbase_enable =
+			IsProcessorFeaturePresent(PF_RDWRFSGSBASE_AVAILABLE);
 
 		cr4_value.os_xsave =
 			IsProcessorFeaturePresent(PF_XSAVE_ENABLED);
@@ -47,9 +53,7 @@ namespace vdm
 
 		m_smep_off.flags = cr4_value.flags;
 		m_smep_off.smep_enable = false;
-		
-		// if your cpu supports SMAP and your on 19H1 or above SMAP will be used...
-		m_smep_off.smap_enable = false; 
+		m_smep_off.smap_enable = false; // newer cpus have this on...
 
 		// WARNING: some virtual machines dont have SMEP...
 		// my VMWare VM doesnt... nor does my Virtual Box VM...
