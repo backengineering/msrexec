@@ -67,11 +67,11 @@ SYSCALL loads the CS and SS selectors with values derived from bits 47:32 of the
 
 # ROP - Return-Oriented Programming
 
-ROP or return-oriented programming, is a technique where an attacker gains control of the call stack to hijack program control flow and then executes carefully chosen machine instruction sequences that are already present in the machine's memory, called "gadgets". Note: ***"The SYSCALL instruction does not save the stack pointer (RSP)"***. This allows for an attacker to setup the stack with addresses of ROP gadgets are specific values. In this situation SMEP and SMAP are two cpu protections which prevent an attacker from setting IA32_LSTAR to a user controlled page.
+ROP or return-oriented programming, is a technique where an attacker gains control of the call stack to hijack program control flow and then executes carefully chosen machine instruction sequences that are already present in the machine's memory, called "gadgets". Note: ***"The SYSCALL instruction does not save the stack pointer (RSP)"***. This allows for an attacker to set up the stack with addresses of ROP gadgets. In this situation SMEP is a cpu protection which prevents an attacker from setting IA32_LSTAR to a user controlled page. SMAP in this situation prevents an attacker from setting IA32_LSTAR to a rop gadget that interfaces with RSP. (***"The SYSCALL instruction does not save the stack pointer (RSP)"***).
 
 ### SMEP - Supervisor Mode Execution Protection
 
-SMEP or Supervisor Mode Execution Protection, prevents a logical processor with a lower CPL from executing code mapped into virtual memory with super supervisor bit set. This is relevant to this project as one could not simply set LSTAR to a user controlled page. However, with ROP one could disable SMEP by executing the following gadgets:
+SMEP or Supervisor Mode Execution Protection, prevents a logical processor with a lower CPL from executing code mapped into virtual memory with the super supervisor bit set. This is relevant to this project as one could not simply set LSTAR to a user controlled page. However, with ROP one could disable SMEP by executing the following gadgets:
 
 ```nasm
 pop rcx
@@ -90,14 +90,14 @@ lea rax, finish
 push rax
 ```
 
-changing IA32_LSTAR to a ROP chain as described above will work just fine on CPU's that done support SMAP. Windows 10 will use SMAP if your CPU supports it. This means RSP is unaccessable since it is a user controlled page. 
+Changing IA32_LSTAR to a ROP chain as described above will work just fine on CPU's that don't support SMAP. Windows 10 will use SMAP if your CPU supports it. This means RSP is inaccessible since it is a user controlled page. 
 
 ### SMAP - Supervisor Mode Access Prevention (Win10 19H1 and up...)
 
 SMAP or Supervisor Mode Access Prevention is a CPU protection which prevents accessing data controlled by a higher CPL. In other words, if SMAP is set in CR4, a logical
 processor executing kernel code cannot access usermode controlled pages (user supervisor).
 
-This is an issue with ROP as RSP after a syscall contains a usermode address. Interfacing with this usermode stack in any way will cause a fault. However, you can essentially disable SMAP from usermode. There is a bit in the RFLAGS register which can be set to nullify SMAP. The instruction to set this bit is called `STAC` (Set AC Flag in EFLAGS Register). However this instruction is privilaged and will throw a #UD. However as [@drew](https://twitter.com/drewbervisor) pointed out, you can `POPFQ` an RFLAGS value with that bit set and the CPU will not throw any exceptions. I assumed that since `STAC` cannot be used in usermode, that `POPFQ` would also throw an exception, however this is not the case... Again thank you [@drew](https://twitter.com/drewbervisor), without this key information the project would have been a complete mess as there are no useable `mov cr4, [non rax registers] ; ret` gadgets which exist across windows versions.
+This is an issue with ROP as RSP after a syscall contains a usermode address. Interfacing with this usermode stack in any way will cause a fault. However, you can essentially disable SMAP from usermode. There is a bit in the RFLAGS register which can be set to nullify SMAP. The instruction to set this bit is called `STAC` (Set AC Flag in EFLAGS Register). However this instruction is privilaged and will throw a #UD. However as [@drew](https://twitter.com/drewbervisor) pointed out, you can `POPFQ` a RFLAGS value with that bit set and the CPU will not throw any exceptions. I assumed that since `STAC` cannot be used in usermode, that `POPFQ` would also throw an exception, however this is not the case... Again thank you [@drew](https://twitter.com/drewbervisor), without this key information the project would have been a complete mess as there are no usable `mov cr4, [non rax registers] ; ret` gadgets which exist across windows versions.
 
 ```nasm
 pushfq                          ; thank you drew :)
