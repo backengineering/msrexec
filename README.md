@@ -131,6 +131,7 @@ On Win10 this MSR is set to `0x4700` or `0100 0111 0000 0000`, as you can see bi
 * [@Ch3rn0byl](https://twitter.com/notCh3rn0byl) - donation of a few vulnerable drivers which exposed arbitrary WRMSR/helped test with KVA shadowing enabled/disabled. 
 * [@namazso](https://twitter.com/namazso) - originally hinting at this project many months ago. its finally done :)
 * [@btbd](https://github.com/btbd) - pointing out that LSTAR points to KiSystemCall64Shadow and not KiSystemCall64 when KVA shadowing is enabled, reguardless of AddressPolicy...
+* [Device Driver Debauchery and MSR Madness](https://vimeo.com/335216903)
 
 # License
 
