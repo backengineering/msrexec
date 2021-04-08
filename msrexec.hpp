@@ -22,9 +22,52 @@ using callback_t = std::function<void(void*, get_system_routine_t)>;
 using thread_info_t = std::pair<std::uint32_t, std::uint32_t>;
 using writemsr_t = std::function<bool(std::uint32_t, std::uintptr_t)>;
 
+struct _ipi_data
+{
+	std::uint32_t core_num;
+	std::uint64_t cr4_val;
+};
+
+using ex_alloc_t = void* (*)(unsigned, unsigned);
+using ex_free_t = void (*)(void*);
+using ipi_call_t = void (*)(void*, _ipi_data*);
+
 extern "C" void msrexec_handler(callback_t* callback);
 inline get_system_routine_t get_system_routine = nullptr;
 inline void* ntoskrnl_base = nullptr;
+
+/*
+	// this gets copied into a kernel pool
+	// so all cores can execute it...
+
+	void ipi_callback(_ipi_data* ipi_data)
+	{
+		cpuid_eax_01 cpuid_info;
+		__cpuid((int*)&cpuid_info, 1);
+
+		const auto cpuid_num = 
+			cpuid_info
+				.cpuid_additional_information
+				.initial_apic_id;
+
+		if (ipi_data->core_num == cpuid_num)
+			return;
+
+		ipi_data->cr4_val = __readcr4();
+	}
+*/
+
+inline std::uint8_t ipi_callback[] = 
+{
+	0x48, 0x89, 0x4C, 0x24, 0x08, 0x53, 0x48, 0x83, 0xEC, 0x20, 0xB8, 0x01,
+	0x00, 0x00, 0x00, 0x33, 0xC9, 0x0F, 0xA2, 0x4C, 0x8D, 0x44, 0x24, 0x08,
+	0x41, 0x89, 0x00, 0x41, 0x89, 0x58, 0x04, 0x41, 0x89, 0x48, 0x08, 0x41,
+	0x89, 0x50, 0x0C, 0x8B, 0x44, 0x24, 0x0C, 0xC1, 0xE8, 0x18, 0x25, 0xFF,
+	0x00, 0x00, 0x00, 0x89, 0x04, 0x24, 0x48, 0x8B, 0x44, 0x24, 0x30, 0x8B,
+	0x0C, 0x24, 0x39, 0x08, 0x75, 0x02, 0xEB, 0x0C, 0x0F, 0x20, 0xE0, 0x48,
+	0x8B, 0x4C, 0x24, 0x30, 0x48, 0x89, 0x41, 0x08, 0x48, 0x83, 0xC4, 0x20,
+	0x5B, 0xC3
+};
 
 namespace vdm
 {
@@ -36,6 +79,7 @@ namespace vdm
 		void set_wrmsr(writemsr_t wrmsr);
 		auto get_wrmsr() -> writemsr_t const;
 	private:
+		auto guess_cr4_value()->cr4;
 		auto find_gadgets() -> bool;
 		auto find_globals() -> bool;
 		writemsr_t wrmsr;
